@@ -1,6 +1,18 @@
+/*
+Package contains an RPC implementation for apsa sessionmembers.
+
+type ArbiterServer simply forwards calls and responses to/from
+the internal sessionmember instance (methods with the same name),
+while the ArbiterClient type calls the server (method names are
+also mirrored).
+
+*/
 package rpc
 
 import (
+	"net"
+	"net/rpc"
+
 	"github.com/crunchypi/go-narb/apsa/common"
 )
 
@@ -65,4 +77,54 @@ type ArbiterServer struct {
 
 func NewArbiterServer(arbiterSessionState sessionMember) *ArbiterServer {
 	return &ArbiterServer{arbiterSessionState}
+}
+
+// StartListen starts an ArbiterServer (not blocking, uses a goroutine).
+// An ArbiterServer by itself isn't really useful; it is intended to be
+// used as part of another service where network arbitration is needed,
+// so this method isn't really intended to be used except for testing
+// and as an example.
+func StartListen(a *ArbiterServer, addr Addr) (stop func(), err error) {
+	handler := rpc.NewServer()
+	handler.Register(a)
+
+	ln, err := net.Listen("tcp", addr.ToStr())
+	if err != nil {
+		return nil, err
+	}
+
+	var conn net.Conn
+	stop = func() {
+		ln.Close()
+		if conn != nil {
+			conn.Close()
+		}
+	}
+
+	go func() {
+		for {
+			cxn, err := ln.Accept()
+			conn = cxn
+			if err != nil {
+				//log.Printf("listen(%q): %s\n", addr.ToStr(), err)
+				break
+			}
+			go handler.ServeConn(cxn)
+		}
+	}()
+	return stop, nil
+}
+
+// RemoteVoteFunc returns a helper func that calls a 'Vote' on a remote
+// ArbiterServer. The apsa algorithm requires that each node can call this
+// method on all other nodes.
+func RemoteVoteFunc() func(addr Addr, sessionID ID) (Addr, ID, StatusCode) {
+	return func(addr Addr, sessionID ID) (Addr, ID, StatusCode) {
+		var err error
+		vote, id, status := ArbiterClient(addr, &err).Vote(sessionID)
+		if err != nil {
+			return Addr{}, ID(""), StatusDefault
+		}
+		return vote, id, status
+	}
 }
