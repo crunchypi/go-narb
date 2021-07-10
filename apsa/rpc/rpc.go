@@ -70,6 +70,38 @@ func ArbiterClient(remoteAddr Addr, err *error) *arbiterClient {
 	return &arbiterClient{remoteAddr: remoteAddr, netErr: err}
 }
 
+// arbiterClients handles 'arbiterClient' operations for multiple addresses,
+// and has methods with the same name, though with a different usage. For
+// instance, InitSession() stores all status codes internally (statuses field)
+// and returns a bool instead, indicating whether or not _all_ nodes started
+// a new vote session. This is useful because one would use 'arbiterClient'
+// for multiple remote servers in this way anyway.
+type arbiterClients struct {
+	remoteAddrs []Addr
+	statuses    map[Addr]StatusCode
+	errors      map[Addr]error
+}
+
+// ArbiterClients returns an *arbiterClients instance which is set up to
+// connect to all addrs in remoteAddrs. This simply forces all outgoing
+// connections to have an address. Additionally, it accepts two map pointers,
+// one for errors associated with an address, and another for status codes.
+// Use nil for those if they are not of interest.
+func ArbiterClients(remoteAddrs []Addr, errors map[Addr]error,
+	statuses map[Addr]StatusCode) *arbiterClients {
+	if errors == nil {
+		errors = make(map[Addr]error)
+	}
+	if statuses == nil {
+		statuses = make(map[Addr]StatusCode)
+	}
+	return &arbiterClients{
+		remoteAddrs: remoteAddrs,
+		errors:      errors,
+		statuses:    statuses,
+	}
+}
+
 type ArbiterServer struct {
 	// No locking, that should be handled by ArbiterSessionMember.
 	ArbiterSessionMember sessionMember

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -208,10 +209,11 @@ func (t *tNetwork) collectVotes(sessionID ID, voteOpt []Addr) (bool, error) {
 
 /*
 --------------------------------------------------------------------------------
-Section for tests. These will validate the functionality of both server.go
+Section for tests (1). These will validate the functionality of both server.go
 and client.go; naming will be based on client.go. This will be mainly done
 on collections for server instances in tNetwork (should be defined further up).
 
+Note: This section won't test clients.go (plural), that's done further down.
 --------------------------------------------------------------------------------
 */
 
@@ -341,6 +343,144 @@ func TestArbiter(t *testing.T) {
 			t.Fatalf("unequal arbiter")
 		}
 	}
+}
+
+/*
+--------------------------------------------------------------------------------
+Section for tests (2).  These will validate the functionality of clients.go
+(plural), which is an orchestration of client.go (singular) and server.go,
+and is as such a test for them as well.
+
+There are also two types defined in this section as helpers, they are what
+X and Y are in ArbiterClients([]Addr, X, Y), with a couple of helper methods.
+--------------------------------------------------------------------------------
+*/
+
+type errs map[Addr]error
+
+func (e *errs) ToStr() string {
+	type s struct {
+		Addr string `json:"Addr"`
+		Err  string `json:"Err"`
+	}
+	coll := make([]s, 0, len(*e))
+	for k, v := range *e {
+		if v == nil {
+			continue
+		}
+		coll = append(coll, s{k.ToStr(), v.Error()})
+	}
+	b, _ := json.Marshal(coll)
+	return string(b)
+}
+
+type statuses map[Addr]StatusCode
+
+func (s *statuses) ToStr() string {
+	type t struct {
+		Addr   string `json:"Addr"`
+		Status string `json:"Status"`
+	}
+	coll := make([]t, 0, len(*s))
+	for k, v := range *s {
+		coll = append(coll, t{k.ToStr(), v.ToStr()})
+	}
+
+	b, _ := json.Marshal(coll)
+	return string(b)
+}
+
+func (s *statuses) uniformStatus(status StatusCode) bool {
+	for _, status := range *s {
+		if status != status {
+			return false
+		}
+	}
+	return true
+}
+
+func TestClientsPing(t *testing.T) {
+	network.resetSessionMember()
+	e := make(errs)
+	s := make(statuses)
+	avail := ArbiterClients(addrs, e, s).Ping()
+	if len(avail) != len(addrs) {
+		t.Fatalf("\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+}
+
+func TestClientsInitSession(t *testing.T) {
+	network.resetSessionMember()
+	id := common.NewRandID(10)
+	e := make(errs)
+	s := make(statuses)
+	if ok := ArbiterClients(addrs, e, s).InitSession(id, addrs); !ok {
+		t.Fatalf("\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+}
+
+func TestClientsCollectVotes(t *testing.T) {
+	network.resetSessionMember()
+	id := common.NewRandID(10)
+	e := make(errs)
+	s := make(statuses)
+	if ok := ArbiterClients(addrs, e, s).InitSession(id, addrs); !ok {
+		t.Fatalf("\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+	if ok := ArbiterClients(addrs, e, s).CollectVotes(id, addrs); !ok {
+		// Brevity.
+		a := StatusFailedVoteConsensus
+		b := StatusFailedVoteCollection
+		if !s.uniformStatus(a) && !s.uniformStatus(b) {
+			t.Fatalf("\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+		}
+	}
+}
+func TestClientsArbiter(t *testing.T) {
+	network.resetSessionMember()
+	id := common.NewRandID(10)
+	e := make(errs)
+	s := make(statuses)
+	if ok := ArbiterClients(addrs, e, s).InitSession(id, addrs); !ok {
+		t.Fatalf("(setup 1)\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+
+	maxIters := 100
+	consensus := false
+	retries := -1
+	for i := 0; i < maxIters; i++ {
+		retries++
+		if ok := ArbiterClients(addrs, e, s).CollectVotes(id, addrs); !ok {
+			if s.uniformStatus(StatusFailedVoteConsensus) {
+				if ok := ArbiterClients(addrs, e, s).InitSession(id, addrs); !ok {
+					t.Fatalf("(reinit) \nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+				}
+				continue
+
+			}
+			t.Fatalf("(not handled) \nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+		}
+		consensus = true
+		break
+	}
+	if !consensus {
+		t.Fatalf("didn't reach consensus after %v tries", retries)
+	}
+	t.Logf("consensus after %v retires", retries)
+
+	if _, ok := ArbiterClients(addrs, e, s).Arbiter(); !ok {
+		t.Fatalf("\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+}
+
+func TestClientsTryForceNewArbiter(t *testing.T) {
+	network.resetSessionMember()
+	e := make(errs)
+	s := make(statuses)
+	if ok := ArbiterClients(addrs, e, s).TryForceNewArbiter(100); !ok {
+		t.Fatalf("(setup 1)\nerrs: %s \nstatuses: %s", e.ToStr(), s.ToStr())
+	}
+
 }
 
 // TestCleanup releases network resources.
