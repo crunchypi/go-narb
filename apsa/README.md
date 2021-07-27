@@ -121,7 +121,7 @@ see how rpc.arbiterClient (singular) is used from the plural alternative (found 
 <br>
 
 Before listing examples, this code will be common (it's put here to reduce example size)
-```
+```go
 import (
 	"testing"
 	"time"
@@ -197,7 +197,7 @@ func (n *network) cleanup() {
 ```
 
 Ping all nodes and get a slice of addresses of repliers:
-```
+```go
 
 ...the-setup-code-listed-further-up....
 
@@ -227,7 +227,7 @@ func TestClientsPing(t *testing.T) {
 ```
 
 Call InitSession on multiple remote nodes:
-```
+```go
 
 ...the-setup-code-listed-further-up....
 
@@ -257,7 +257,7 @@ func TestClientsInitSession(t *testing.T) {
 ```
 
 Call CollectVotes on multiple remote nodes:
-```
+```go
 
 ...the-setup-code-listed-further-up....
 
@@ -295,7 +295,7 @@ func TestClientsCollectVotes(t *testing.T) {
 ```
 
 Call Arbiter on multiple remote nodes:
-```
+```go
 
 ...the-setup-code-listed-further-up....
 
@@ -343,7 +343,7 @@ func TestClientsArbiter(t *testing.T) {
 Convenience method: TryForceNewArbiter. It does some of the stuff listed in the previous examples
 (calling Ping, InitSession and CollectVotes) with one line. It also does retries automatically if
 there is not consensus, which is nice.
-```
+```go
 
 ...the-setup-code-listed-further-up....
 
