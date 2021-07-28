@@ -116,8 +116,7 @@ The abstraction/orchestration type (arbiterClients plural) does that convenientl
 
 <br>
 The examples will cover apsa/rpc.arbiterClients (plural) for convenience. If there are edge cases and more control is needed,
-see how rpc.arbiterClient (singular) is used from the plural alternative. That can be found 
-[here](https://github.com/crunchypi/go-narb/blob/docs/apsa/rpc/clients.go).
+see how rpc.arbiterClient (singular) is used from the plural alternative. That can be found here: https://github.com/crunchypi/go-narb/blob/docs/apsa/rpc/clients.go.
 
 <br>
 
