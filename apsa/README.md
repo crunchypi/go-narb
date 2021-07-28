@@ -66,7 +66,7 @@ Here is some description of states and status codes related to the actions/funcs
 section:
 
 
-##### InitSession
+#### InitSession
 - StatusInvalidSessionMembers: The vote options that are given for this func/method/step contains addresses that are not whitelisted.
 - StatusInSession: A session is already ongoing and not failed.
 - StatusInvalidSessionID: A session can be restarted _only_ if it failed. The fail state is set with the CollectVotes step ([step 2](#step-2))
@@ -116,7 +116,8 @@ The abstraction/orchestration type (arbiterClients plural) does that convenientl
 
 <br>
 The examples will cover apsa/rpc.arbiterClients (plural) for convenience. If there are edge cases and more control is needed,
-see how rpc.arbiterClient (singular) is used from the plural alternative (found in apsa/rpc/clients.go).
+see how rpc.arbiterClient (singular) is used from the plural alternative. That can be found 
+[here](https://github.com/crunchypi/go-narb/blob/docs/apsa/rpc/clients.go).
 
 <br>
 
