@@ -9,6 +9,7 @@ import "fmt"
 // StatusCode represents a status, much like http status codes.
 type StatusCode int
 
+// More info: https://github.com/crunchypi/go-narb/tree/docs/apsa#states-and-status-codes
 const (
 	// StatusDefault represents an unset/default StatusCode.
 	StatusDefault StatusCode = iota
